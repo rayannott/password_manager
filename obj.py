@@ -26,6 +26,8 @@ HELP_STR = '''
     lock <key>    # try to apply lock command to all folders
     unlock <key>    # try to apply unlock command to all folders
     gen    # generate a password string
+
+Note: some commands have a short form: folder = f, lock = l, unlock = ul.
 '''
 
 @dataclass
