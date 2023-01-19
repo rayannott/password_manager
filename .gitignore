@@ -1,0 +1,9 @@
+venv/
+pyinstall.py
+reference_for_azat.txt
+__pycache__
+build/
+dist/
+old storages/
+passwords for testing.txt
+*.pass
