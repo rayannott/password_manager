@@ -6,4 +6,4 @@ build/
 dist/
 old storages/
 passwords for testing.txt
-*.pass
+# *.pass
