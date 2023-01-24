@@ -14,10 +14,10 @@ class VigenereCipher:
             'p', 'N', 'T', 'i', 'j', 'B', 'a']
         self.SYM_backw = {ch: i for i, ch in enumerate(self.SYM_forw)}
 
-    def forw(self, ind: int):
+    def _forw(self, ind: int):
         return self.SYM_forw[ind]
     
-    def backw(self, ch: str):
+    def _backw(self, ch: str):
         if ch not in self.SYM_backw:
             raise KeyError(f'Character {ch} is unknown')
         return self.SYM_backw[ch]
@@ -26,14 +26,14 @@ class VigenereCipher:
         pr = string_repeater(key)
         res = ''
         for ch in s:
-            res += self.forw((self.backw(ch) + self.backw(next(pr))) % len(self.SYM_forw))
+            res += self._forw((self._backw(ch) + self._backw(next(pr))) % len(self.SYM_forw))
         return res
 
     def decrypt(self, s, key):
         pr = string_repeater(key)
         res = ''
         for ch in s:
-            res += self.forw((self.backw(ch) - self.backw(next(pr))) % len(self.SYM_forw))
+            res += self._forw((self._backw(ch) - self._backw(next(pr))) % len(self.SYM_forw))
         return res
 
 
