@@ -59,10 +59,10 @@ class Folder:
         self.log_history: list[LogEntry] = []
         self.log('created')
     
-    def log(self, action: str):
+    def log(self, action: str) -> None:
         self.log_history.append(LogEntry(action))
     
-    def display_info(self):
+    def display_info(self) -> None:
         for log_ent in self.log_history:
             print(log_ent)
     
@@ -74,7 +74,7 @@ class Folder:
         return self.unlocked
 
     def encrypt(self, key) -> None:
-        self.name_for_check = cifer.encrypt(self.name_for_check, key)
+        self.name_for_check = cifer.encrypt(self.name_for_check, key) # this string gets transformed along with the data
         for e in self.entries:
             e.password = cifer.encrypt(e.password, key)
             e.note = cifer.encrypt(e.note, key)
@@ -94,20 +94,20 @@ class Folder:
     
     def add_entry(self, entry: Entry) -> None:
         if not self.get_unlocked():
-            print('Cannot add entry to locked folder')
+            print('FAIL: cannot add entry to locked folder')
             return
         self.entries.append(entry)
         print(f'Added entry {entry.name} to folder {self.name}')
         self.log(f'added entry {entry.name}')
     
-    def delete_entry(self, entry_index: int):
+    def delete_entry(self, entry_index: int) -> None:
         if 0 <= entry_index < len(self.entries):
             ent_name = self.entries[entry_index].name
             del self.entries[entry_index]
             print(f'Deleted entry {ent_name} from folder {self.name}')
             self.log(f'deleted entry {ent_name}')
         else:
-            print(f'Invalid index: {entry_index}. Must be from [0, {len(self.entries)})')
+            print(f'ERROR: invalid index: {entry_index}; must be in [0, {len(self.entries)})')
     
     def list(self) -> None:
         if self.entries:
@@ -157,7 +157,7 @@ class App:
     def encrypt_db(self, db_name, key) -> None:
         thisdb = self.databases[db_name]
         if not thisdb.unlocked:
-            print(f'Folder [{db_name}] is already locked')
+            print(f'FAIL: folder [{db_name}] is already locked')
             return
 
         thisdb.encrypt(key)
@@ -167,10 +167,10 @@ class App:
     def decrypt_db(self, db_name, key) -> None:
         thisdb = self.databases[db_name]
         if thisdb.unlocked:
-            print(f'Folder [{db_name}] is already unlocked')
+            print(f'FAIL: folder [{db_name}] is already unlocked')
             return
         if not thisdb.is_decryptable(key):
-            print(f'Invalid key for folder [{db_name}]')
+            print(f'FAIL: invalid key for folder [{db_name}]')
             thisdb.log(f'decrypting unsuccessfull')
             return
 
