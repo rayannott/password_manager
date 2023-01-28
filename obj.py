@@ -134,8 +134,13 @@ class App:
             if ind != -1:
                 self.DBFILE = app_files[ind][2:]
                 with open(self.DBFILE, 'rb') as f:
-                    self.databases: dict[str, Folder] = pickle.load(f)
-                print('Loaded existing storage:', self.DBFILE)
+                    try:
+                        self.databases: dict[str, Folder] = pickle.load(f)
+                    except Exception as e:
+                        print('Error occured when reading the storage file:', e)
+                        self.close()
+                    else:
+                        print('Loaded existing storage:', self.DBFILE)
             else:
                 self.creating_new_storage()
         else:
