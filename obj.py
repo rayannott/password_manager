@@ -125,7 +125,6 @@ class App:
     def __init__(self) -> None:
         self.running = True
         self.app_files = glob.glob('./*.pass')
-        print(self.app_files)
 
         if self.app_files:
             print('Existing storages found:')
@@ -271,6 +270,9 @@ class App:
                         case _:
                             print('Folder already exists')
                 else:
+                    if len(rest):
+                        print('No such folder')
+                        return
                     self.databases[db_name] = Folder(db_name)
                     print('Created new folder')
             case ['gen']:
