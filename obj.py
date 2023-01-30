@@ -18,8 +18,8 @@ HELP_STR = '''
     folder <folder_name> lock <key>    # encrypt a folder with a key; the folder must be unlocked
     folder <folder_name> unlock <key>    # decrypt a folder with a key; executes successfully only if the key is correct; the folder must be locked
     folder <folder_name> drop    # delete the folder; a folder must be unlocked
-    folder <folder_name> drop <index>   # delete the entry with a given index from the folder; the folder must be unlocked
-    folder <folder_name> export [<out_filename>]   # write all entries of a folder into a file
+    folder <folder_name> drop <index>   # delete the entry with a given index from the folder; the folder must be unlocked; the entries are enumerated starting at 0
+    folder <folder_name> export   # write all entries of a folder into a file
 	folder <folder_name> info    # print log history of a folder; the folder must me unlocked
     list    # list all folders in this storage
     listv    # list all folders with their contents
@@ -124,15 +124,16 @@ class Folder:
 class App:
     def __init__(self) -> None:
         self.running = True
-        app_files = glob.glob('./*.pass')
+        self.app_files = glob.glob('./*.pass')
+        print(self.app_files)
 
-        if len(app_files):
+        if self.app_files:
             print('Existing storages found:')
-            for i, af in enumerate(app_files):
+            for i, af in enumerate(self.app_files):
                 print(f'{i}. {af[2:]}')
             ind = int(input('Choose one by index or type "-1" to create a new storage: '))
             if ind != -1:
-                self.DBFILE = app_files[ind][2:]
+                self.DBFILE = self.app_files[ind][2:]
                 with open(self.DBFILE, 'rb') as f:
                     try:
                         self.databases: dict[str, Folder] = pickle.load(f)
@@ -147,10 +148,15 @@ class App:
             self.creating_new_storage()
     
     def creating_new_storage(self) -> None:
-        name = input('No storage found. Input a name for a new one: ')
+        name = input('Input a name for a new storage: ')
         self.DBFILE = f'{name}.pass'
+        if '.\\' + self.DBFILE in self.app_files:
+            print('A storage with this name already exists.')
+            if not input('Are you sure that you want to rewrite it? (y/n) ') == 'y':
+                self.close()
+                return
         self.databases = dict()
-        print('Created new storage')
+        print(f'Created new storage [{name}]')
 
     def display(self) -> None:
         if self.databases:
@@ -189,36 +195,35 @@ class App:
             return
         with open(self.DBFILE, 'wb') as f:
             pickle.dump(self.databases, f)
+        print('Saved all folders')
 
     def close(self) -> None:
         self.running = False
+        print('Closed successfully')
     
     def execute(self, cmd: str) -> None:
         match cmd.split():
             case ['save']:
                 self.save()
-                print('Saved all folders')
             case ['close']:
                 self.close()
-                print('Closed successfully')
             case ['sc']:
                 self.save()
                 self.close()
-                print('Saved and closed successfully')
             case ['help']:
                 print(HELP_STR)
-            case ['listv' | 'lv', *args]:
+            case ['listv', *args]:
                 print()
                 for db_name, db in self.databases.items():
                     print('\t', db, ':', sep='')
                     db.list()
                     print()
-            case ['list' | 'l']:
+            case ['list']:
                 self.display()
-            case ['lock', key]:
+            case ['lock' | 'l', key]:
                 for foldername in self.databases:
                     self.encrypt_db(foldername, key)
-            case ['unlock', key]:
+            case ['unlock' | 'ul', key]:
                 for foldername in self.databases:
                     self.decrypt_db(foldername, key)
             case ['folder' | 'f', db_name, *rest]:
@@ -234,8 +239,9 @@ class App:
                             self.databases[db_name].list()
                         case ['drop']:
                             if self.databases[db_name].get_unlocked():
-                                del self.databases[db_name]
-                                print(f'Deleted folder [{db_name}]')
+                                if input('Are you sure (y/n)? ') == 'y':
+                                    del self.databases[db_name]
+                                    print(f'Deleted folder [{db_name}]')
                             else:
                                 print('Cannot delete a locked folder')
                         case ['drop', entry_index]:
@@ -248,12 +254,12 @@ class App:
                                 self.databases[db_name].delete_entry(entry_index_int)
                             else:
                                 print('Cannot delete an entry from a locked folder')
-                        case ['lock' | '<<', pin]:
+                        case ['lock' | 'l' | '<<', pin]:
                             self.encrypt_db(db_name, pin)
-                        case ['unlock' | '>>', pin]:
+                        case ['unlock' | 'ul' | '>>', pin]:
                             self.decrypt_db(db_name, pin)
-                        case ['export', *export_filename]:
-                            filename = export_filename[0] if export_filename else 'exported_folder.txt'
+                        case ['export']:
+                            filename = f'{db_name}.txt'
                             with open(filename, 'w') as fexport:
                                 for ent in self.databases[db_name].entries:
                                     print(ent, file=fexport)
