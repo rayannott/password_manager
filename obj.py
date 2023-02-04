@@ -125,6 +125,7 @@ class App:
     def __init__(self) -> None:
         self.running = True
         self.app_files = glob.glob('./*.pass')
+        self.default_key = None
 
         if self.app_files:
             print('Existing storages found:')
@@ -211,7 +212,7 @@ class App:
                 self.close()
             case ['help']:
                 print(HELP_STR)
-            case ['listv', *args]:
+            case ['listv']:
                 print()
                 for db_name, db in self.databases.items():
                     print('\t', db, ':', sep='')
@@ -222,9 +223,17 @@ class App:
             case ['lock' | 'l', key]:
                 for foldername in self.databases:
                     self.encrypt_db(foldername, key)
+            case ['lock' | 'l']:
+                if self.default_key is None:
+                    print('"unlock <key>" command was not used')
+                    return
+                for foldername in self.databases:
+                    self.encrypt_db(foldername, self.default_key)
+                print('Locked everything with a key used in the last "unlock <key>"')
             case ['unlock' | 'ul', key]:
                 for foldername in self.databases:
                     self.decrypt_db(foldername, key)
+                self.default_key = key
             case ['folder' | 'f', db_name, *rest]:
                 if db_name in self.databases:
                     match rest:
