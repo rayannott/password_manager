@@ -24,6 +24,7 @@ HELP_STR = '''
     list    # list all folders in this storage
     listv    # list all folders with their contents
     lock <key>    # try to apply lock command to all folders
+    lock     # try to apply lock commands to all folders using the last key used with the "unlock <key>" command
     unlock <key>    # try to apply unlock command to all folders
     gen    # generate a password string
 
