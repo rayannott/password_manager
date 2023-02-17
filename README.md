@@ -21,6 +21,4 @@ print(result1 == result2) # True
 
 The `VigenereKeySplitCifer` takes it one step further. It is equivalent to the `VigenereIterShiftCifer` if length of the key is less than 4. Otherwise, it splits the key into two keys $k_1,\;k_2$ in such a way that $\gcd(\text{len}(k_1), \text{len}(k_2)) = 1$, then uses these keys in sequence applying the `VigenereIterShiftCifer` to the input string. The split is increasing the effective length of the key (if the initial length is $L$, then new effective length would be approximately equal to $L^2/4$).
 
-
-
-``
+Note that the required minimal version of python is 3.10 (due to the new typehints and `match`-`case` syntax).
