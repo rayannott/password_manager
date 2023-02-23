@@ -8,28 +8,27 @@ from utils import generate_password
 
 cifer = VigenereKeySplitCifer(iterations=100)
 
-HELP_STR = '''
-    save    # save all folders to a local storage
-    close    # close the program
-    help    # print this message
-    folder <folder_name>    # create a folder
-    folder <folder_name> list    # list all entries in the folder
-    folder <folder_name> add <ent_name> <login> <password> [<notes>*]    # add a new entry to the folder; the folder must be unlocked
-    folder <folder_name> lock <key>    # encrypt a folder with a key; the folder must be unlocked
-    folder <folder_name> unlock <key>    # decrypt a folder with a key; executes successfully only if the key is correct; the folder must be locked
-    folder <folder_name> drop    # delete the folder; a folder must be unlocked
-    folder <folder_name> drop <index>   # delete the entry with a given index from the folder; the folder must be unlocked; the entries are enumerated starting at 0
-    folder <folder_name> export   # write all entries of a folder into a file
-	folder <folder_name> info    # print log history of a folder; the folder must me unlocked
-    list    # list all folders in this storage
-    listv    # list all folders with their contents
-    lock <key>    # try to apply lock command to all folders
-    lock     # try to apply lock commands to all folders using the last key used with the "unlock <key>" command
-    unlock <key>    # try to apply unlock command to all folders
-    gen    # generate a password string
+HELP_STR = [
+    'save    # save all folders to a local storage',
+    'close    # close the program',
+    'help    # print this message',
+    'folder <folder_name>    # create a folder',
+    'folder <folder_name> list    # list all entries in the folder',
+    'folder <folder_name> add <ent_name> <login> <password> [<notes>*]    # add a new entry to the folder; the folder must be unlocked',
+    'folder <folder_name> lock <key>    # encrypt a folder with a key; the folder must be unlocked',
+    'folder <folder_name> unlock <key>    # decrypt a folder with a key; executes successfully only if the key is correct; the folder must be locked',
+    'folder <folder_name> drop    # delete the folder; a folder must be unlocked',
+    'folder <folder_name> drop <index>   # delete the entry with a given index from the folder; the folder must be unlocked; the entries are enumerated starting at 0',
+    'folder <folder_name> export   # write all entries of a folder into a file',
+    'folder <folder_name> info    # print log history of a folder; the folder must me unlocked',
+    'list    # list all folders in this storage',
+    'listv    # list all folders with their contents',
+    'lock <key>    # try to apply lock command to all folders',
+    'lock     # try to apply lock commands to all folders using the last key used with the "unlock <key>" command',
+    'unlock <key>    # try to apply unlock command to all folders',
+    'gen [<length>]   # generate a password string; default length is 15'
+]
 
-Note: some commands have a short form: folder = f, lock = l, unlock = ul.
-'''
 
 @dataclass
 class Entry:
@@ -212,7 +211,9 @@ class App:
                 self.save()
                 self.close()
             case ['help']:
-                print(HELP_STR)
+                for i, hlp in enumerate(HELP_STR):
+                    print(f'{i+1}. {hlp}')
+                print('Note: some commands have a short form: folder = f, lock = l, unlock = ul.')
             case ['listv']:
                 print()
                 for db_name, db in self.databases.items():
@@ -230,7 +231,7 @@ class App:
                     return
                 for foldername in self.databases:
                     self.encrypt_db(foldername, self.default_key)
-                print('Locked everything with a key used in the last "unlock <key>"')
+                print('Locked everything with the key used in the last "unlock <key>"')
             case ['unlock' | 'ul', key]:
                 for foldername in self.databases:
                     self.decrypt_db(foldername, key)
@@ -286,7 +287,24 @@ class App:
                     self.databases[db_name] = Folder(db_name)
                     print('Created new folder')
             case ['gen']:
-                print('Generated password:', generate_password())
+                print('Generated password:', generate_password(15))
+            case ['gen', pass_len]:
+                try:
+                    pass_len_int = int(pass_len)
+                except:
+                    print(f'{pass_len} is not a number')
+                else:
+                    if pass_len_int <= 0:
+                        print('Password length must be positive')
+                        return
+                    if pass_len_int <= 4:
+                        additional_str = ' (a very short one)'
+                    elif 4 < pass_len_int < 16:
+                        additional_str = ''
+                    else:
+                        additional_str = ' (a huge one)'
+
+                    print('Generated password:', generate_password(pass_len_int), additional_str)
             case _:
                 print('Unknown command. Try <help>')
 
