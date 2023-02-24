@@ -4,7 +4,7 @@ import glob
 from datetime import datetime
 
 from crypt_tools import VigenereKeySplitCifer
-from utils import generate_password
+from utils import generate_password, Message, MessagesList, MsgType
 
 cifer = VigenereKeySplitCifer(iterations=100)
 
@@ -51,6 +51,7 @@ class LogEntry:
 
 
 class Folder:
+    # core database class - holds a list of Entries and performs logical operations on them
     def __init__(self, name) -> None:
         self.name = name
         self.entries: list[Entry] = []
@@ -62,9 +63,8 @@ class Folder:
     def log(self, action: str) -> None:
         self.log_history.append(LogEntry(action))
     
-    def display_info(self) -> None:
-        for log_ent in self.log_history:
-            print(log_ent)
+    def display_info(self) -> MessagesList:
+        return [Message(str(log_ent)) for log_ent in self.log_history]
     
     def get_name(self) -> str:
         return self.name
@@ -92,29 +92,27 @@ class Folder:
     def is_decryptable(self, key: str) -> bool:
         return cifer.decrypt(self.name_for_check, key) == self.name 
     
-    def add_entry(self, entry: Entry) -> None:
+    def add_entry(self, entry: Entry) -> MessagesList:
         if not self.get_unlocked():
-            print('FAIL: cannot add entry to locked folder')
-            return
+            return [Message('Cannot add entry to locked folder', MsgType.ERROR)]
         self.entries.append(entry)
-        print(f'Added entry {entry.name} to folder {self.name}')
         self.log(f'added entry {entry.name}')
+        return [Message(f'Added entry {entry.name} to folder {self.name}')]
     
-    def delete_entry(self, entry_index: int) -> None:
+    def delete_entry(self, entry_index: int) -> MessagesList:
         if 0 <= entry_index < len(self.entries):
             ent_name = self.entries[entry_index].name
             del self.entries[entry_index]
-            print(f'Deleted entry {ent_name} from folder {self.name}')
             self.log(f'deleted entry {ent_name}')
+            return [Message(f'Deleted entry {ent_name} from folder {self.name}')]
         else:
-            print(f'ERROR: invalid index: {entry_index}; must be in [0, {len(self.entries)})')
+            return [Message(f'ERROR: invalid index: {entry_index}; must be in [0, {len(self.entries)})', MsgType.ERROR)]
     
-    def list(self) -> None:
+    def list(self) -> MessagesList:
         if self.entries:
-            for ent in self.entries:
-                print(ent)
+            return [Message(str(ent)) for ent in self.entries]
         else:
-            print('no entries')
+            return [Message('No entries', MsgType.ERROR)]
 
     def __str__(self) -> str:
         unlocked_indicator = 'LOCKED ' if not self.get_unlocked() else ''
@@ -218,7 +216,8 @@ class App:
                 print()
                 for db_name, db in self.databases.items():
                     print('\t', db, ':', sep='')
-                    db.list()
+                    for msg in db.list():
+                        print(msg)
                     print()
             case ['list']:
                 self.display()
@@ -241,12 +240,14 @@ class App:
                     match rest:
                         case ['add' | '+', *entry_data]:
                             if len(entry_data) >= 3:
-                                self.databases[db_name].add_entry(Entry(*entry_data[:3], ' '.join(entry_data[3:])))
+                                for msg in self.databases[db_name].add_entry(Entry(*entry_data[:3], ' '.join(entry_data[3:]))):
+                                    print(msg)
                             else:
                                 print('Not enough arguments for an entry')
                         case ['list' | 'l']:
                             print('\t', self.databases[db_name], ':', sep='')
-                            self.databases[db_name].list()
+                            for msg in self.databases[db_name].list():
+                                print(msg)
                         case ['drop']:
                             if self.databases[db_name].get_unlocked():
                                 if input('Are you sure (y/n)? ') == 'y':
@@ -261,7 +262,8 @@ class App:
                                 print(f'ERROR: {entry_index} is not an integer')
                                 return
                             if self.databases[db_name].get_unlocked():
-                                self.databases[db_name].delete_entry(entry_index_int)
+                                for msg in self.databases[db_name].delete_entry(entry_index_int):
+                                    print(msg)
                             else:
                                 print('Cannot delete an entry from a locked folder')
                         case ['lock' | 'l' | '<<', pin]:
@@ -275,7 +277,8 @@ class App:
                                     print(ent, file=fexport)
                         case ['info']:
                             if self.databases[db_name].get_unlocked():
-                                self.databases[db_name].display_info()
+                                for msg in self.databases[db_name].display_info():
+                                    print(msg)
                             else:
                                 print('Cannot display info about a locked folder')
                         case _:
