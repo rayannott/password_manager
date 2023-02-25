@@ -4,7 +4,7 @@ import glob
 from datetime import datetime
 
 from crypt_tools import VigenereKeySplitCifer
-from utils import generate_password, Message, MessagesList, MsgType
+from utils import generate_password, Message, MessagesList, MsgType, hashf, SYM_forw
 
 cifer = VigenereKeySplitCifer(iterations=100)
 
@@ -26,7 +26,8 @@ HELP_STR = [
     'lock <key>    # try to apply lock command to all folders',
     'lock     # try to apply lock commands to all folders using the last key used with the "unlock <key>" command',
     'unlock <key>    # try to apply unlock command to all folders',
-    'gen [<length>]   # generate a password string; default length is 15'
+    'gen [<length>]   # generate a password string; default length is 15',
+    'allowed     # show all allowed charachters for the entries'
 ]
 
 
@@ -55,7 +56,7 @@ class Folder:
     def __init__(self, name) -> None:
         self.name = name
         self.entries: list[Entry] = []
-        self.name_for_check = name
+        self.key_hash: int | None = None # storing hash of a key
         self.unlocked = True
         self.log_history: list[LogEntry] = []
         self.log('created')
@@ -70,11 +71,11 @@ class Folder:
         return self.name
     
     def get_unlocked(self) -> bool:
-        self.unlocked = self.name == self.name_for_check
         return self.unlocked
 
     def encrypt(self, key) -> None:
-        self.name_for_check = cifer.encrypt(self.name_for_check, key) # this string gets transformed along with the data
+        self.key_hash = hashf(key)
+        self.unlocked = False
         for e in self.entries:
             e.password = cifer.encrypt(e.password, key)
             e.note = cifer.encrypt(e.note, key)
@@ -82,7 +83,8 @@ class Folder:
         self.log('encrypted')
 
     def decrypt(self, key: str) -> None:
-        self.name_for_check = cifer.decrypt(self.name_for_check, key)
+        self.key_hash = None
+        self.unlocked = True
         for e in self.entries:
             e.password = cifer.decrypt(e.password, key)
             e.note = cifer.decrypt(e.note, key)
@@ -90,7 +92,7 @@ class Folder:
         self.log('decrypted')
     
     def is_decryptable(self, key: str) -> bool:
-        return cifer.decrypt(self.name_for_check, key) == self.name 
+        return hashf(key) == self.key_hash
     
     def add_entry(self, entry: Entry) -> MessagesList:
         if not self.get_unlocked():
@@ -165,17 +167,16 @@ class App:
 
     def encrypt_db(self, db_name, key) -> None:
         thisdb = self.databases[db_name]
-        if not thisdb.unlocked:
+        if not thisdb.get_unlocked():
             print(f'FAIL: folder [{db_name}] is already locked')
             return
 
         thisdb.encrypt(key)
-        thisdb.get_unlocked()
         print(f'Folder [{db_name}] encrypted successfully')
     
     def decrypt_db(self, db_name, key) -> None:
         thisdb = self.databases[db_name]
-        if thisdb.unlocked:
+        if thisdb.get_unlocked():
             print(f'FAIL: folder [{db_name}] is already unlocked')
             return
         if not thisdb.is_decryptable(key):
@@ -184,7 +185,6 @@ class App:
             return
 
         thisdb.decrypt(key)
-        thisdb.get_unlocked()
         print(f'Folder [{db_name}] decrypted successfully')
         
     def save(self) -> None:
@@ -213,6 +213,9 @@ class App:
                     print(f'{i+1}. {hlp}')
                 print('Note: some commands have a short form: folder = f, lock = l, unlock = ul.')
             case ['listv']:
+                if not self.databases:
+                    print('Empty list of folders')
+                    return
                 print()
                 for db_name, db in self.databases.items():
                     print('\t', db, ':', sep='')
@@ -276,6 +279,7 @@ class App:
                                 for ent in self.databases[db_name].entries:
                                     print(ent, file=fexport)
                         case ['info']:
+                            print(self.databases[db_name].key_hash)
                             if self.databases[db_name].get_unlocked():
                                 for msg in self.databases[db_name].display_info():
                                     print(msg)
@@ -308,6 +312,8 @@ class App:
                         additional_str = ' (a huge one)'
 
                     print('Generated password:', generate_password(pass_len_int), additional_str)
+            case ['allowed']:
+                print(''.join(SYM_forw))
             case _:
                 print('Unknown command. Try <help>')
 
