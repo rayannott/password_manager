@@ -1,39 +1,28 @@
 from utils import *
 
 
-class VigenereCipher:
-    def __init__(self) -> None:
-        # SYM = ascii_lowercase + ascii_uppercase + '0123456789' + '!@#$%^&*()_+=-][}{\';":,./|\\'
-        self.SYM_forw: list[str] = ['o', 'D', '+', '0', 'w', 's', '1', '8', '@', 'H', 't', 
-            'l', ']', 'Y', '}', '(', '[', 'X', '{', '\\', 'W', '^', 
-            'c', 'J', '_', '>', 'Z', '&', '<', '5', 'V', '2', 'U', '=', 'O', ';', 
-            '7', 'k', "'", '#', 'g', ' ', '/', 'A', '%', '$', 'C', 'M', 'r', 
-            'L', 'x', 'y', 'S', '"', 'E', 'u', '?', ',', 'b', 'R', ')', 'e', 
-            '6', 'v', 'Q', 'd', '!', '3', 'h', 'q', '4', 'G', ':', '*', 
-            'F', 'z', 'K', '-', 'n', 'I', '9', 'f', '|', 'm', '.', 'P', 
-            'p', 'N', 'T', 'i', 'j', 'B', 'a']
-        self.SYM_backw = {ch: i for i, ch in enumerate(self.SYM_forw)}
 
+class VigenereCipher:
     def _forw(self, ind: int):
-        return self.SYM_forw[ind]
+        return SYM_forw[ind]
     
     def _backw(self, ch: str):
-        if ch not in self.SYM_backw:
+        if ch not in SYM_backw:
             raise KeyError(f'Character {ch} is unknown')
-        return self.SYM_backw[ch]
+        return SYM_backw[ch]
 
     def encrypt(self, s, key):
         pr = string_repeater(key)
         res = ''
         for ch in s:
-            res += self._forw((self._backw(ch) + self._backw(next(pr))) % len(self.SYM_forw))
+            res += self._forw((self._backw(ch) + self._backw(next(pr))) % len(SYM_forw))
         return res
 
     def decrypt(self, s, key):
         pr = string_repeater(key)
         res = ''
         for ch in s:
-            res += self._forw((self._backw(ch) - self._backw(next(pr))) % len(self.SYM_forw))
+            res += self._forw((self._backw(ch) - self._backw(next(pr))) % len(SYM_forw))
         return res
 
 
