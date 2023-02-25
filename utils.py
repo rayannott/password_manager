@@ -1,6 +1,7 @@
 from string import ascii_letters
 from random import choices
 from enum import Enum
+import hashlib
 
 
 SYM_forw: list[str] = ['o', 'D', '+', '0', 'w', 's', '1', '8', '@', 'H', 't', 
@@ -50,13 +51,5 @@ def generate_password(length):
     return ''.join(choices(chars, k=length))
 
 
-char_func = SYM_backw.get
 def hashf(s: str):
-        a = 1234627; b = 8935573; c = 12507347
-        res = sum(map(char_func, s))**2 + 1
-        for i, ch in enumerate(s, 1):
-            this_idx = char_func(ch)
-            res = ((res + i) * (this_idx + i) * a) % b
-            res = ((res + i) * (this_idx + 2*i) * b) % c
-            res = ((res + i) * (this_idx + 3*i + 1) * c) % 2147483647
-        return res
+    return hashlib.sha256(s.encode()).hexdigest()

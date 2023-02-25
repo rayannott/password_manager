@@ -279,6 +279,7 @@ class App:
                                 for ent in self.databases[db_name].entries:
                                     print(ent, file=fexport)
                         case ['info']:
+                            print('key hash:', self.databases[db_name].key_hash)
                             if self.databases[db_name].get_unlocked():
                                 for msg in self.databases[db_name].display_info():
                                     print(msg)
