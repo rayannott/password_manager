@@ -3,8 +3,11 @@ import pickle
 import glob
 from datetime import datetime
 
+from rich.console import Console
+
 from crypt_tools import VigenereKeySplitCifer
 from utils import generate_password, Message, MessagesList, MsgType, hashf, SYM_forw
+import rich_utils as ru
 
 cifer = VigenereKeySplitCifer(iterations=100)
 
@@ -119,6 +122,10 @@ class Folder:
     def __str__(self) -> str:
         unlocked_indicator = 'LOCKED ' if not self.get_unlocked() else ''
         return f'{unlocked_indicator}Folder [{self.name}] with {len(self.entries)} entries'
+    
+    def to_rich(self) -> str:
+        unlocked_indicator = '[yellow]LOCKED[/]' if not self.get_unlocked() else '[green]OPEN[/]'
+        return f'{unlocked_indicator} folder [cyan]{self.name}[/] with {len(self.entries)} entries'
 
 
 class App:
@@ -126,78 +133,74 @@ class App:
         self.running = True
         self.app_files = glob.glob('./*.pass')
         self.default_key = None
+        self.cns = Console()
 
         if self.app_files:
-            print('Existing storages found:')
+            cols = ['ID', 'STORAGE']
+            rows = []
             for i, af in enumerate(self.app_files):
-                print(f'{i}. {af[2:]}')
-            ind = int(input('Choose one by index or type "-1" to create a new storage: '))
+                rows.append([str(i), af[2:]])
+            self.cns.print(ru.get_rich_table(cols, rows, 'Existing Storages'))
+            ind = int(ru.input(self.cns, prompt_text='Choose one by [blue]ID[/] or type "-1" to create a new storage: '))
             if ind != -1:
                 self.DBFILE = self.app_files[ind][2:]
                 with open(self.DBFILE, 'rb') as f:
                     try:
                         self.databases: dict[str, Folder] = pickle.load(f)
                     except Exception as e:
-                        print('Error occured when reading the storage file:', e)
+                        self.cns.print(f'Error occured when reading the storage file: [red]{e}[/]')
                         self.close()
                     else:
-                        print('Loaded existing storage:', self.DBFILE)
+                        self.cns.print(ru.get_rich_panel(f'STORAGE [magenta]{self.DBFILE[:-5]}'))
             else:
                 self.creating_new_storage()
         else:
             self.creating_new_storage()
     
     def creating_new_storage(self) -> None:
-        name = input('Input a name for a new storage: ')
+        name = ru.input(self.cns, 'Input a name for a new storage: ')
         self.DBFILE = f'{name}.pass'
         if '.\\' + self.DBFILE in self.app_files:
-            print('A storage with this name already exists.')
+            self.cns.print('[red]A storage with this name already exists')
             if not input('Are you sure that you want to rewrite it? (y/n) ') == 'y':
                 self.close()
                 return
         self.databases = dict()
-        print(f'Created new storage [{name}]')
-
-    def display(self) -> None:
-        if self.databases:
-            for db in self.databases.values():
-                print(db)
-        else:
-            print('Empty list of folders')
+        self.cns.print(f'Created new storage [magenta]{name}')
 
     def encrypt_db(self, db_name, key) -> None:
         thisdb = self.databases[db_name]
         if not thisdb.get_unlocked():
-            print(f'FAIL: folder [{db_name}] is already locked')
+            self.cns.print(f'[red]Folder [cyan]{db_name}[/] is already locked')
             return
 
         thisdb.encrypt(key)
-        print(f'Folder [{db_name}] encrypted successfully')
+        self.cns.print(f'[green]Folder [cyan]{db_name}[/] encrypted successfully')
     
     def decrypt_db(self, db_name, key) -> None:
         thisdb = self.databases[db_name]
         if thisdb.get_unlocked():
-            print(f'FAIL: folder [{db_name}] is already unlocked')
+            self.cns.print(f'[red]Folder [cyan]{db_name}[/] is already unlocked')
             return
         if not thisdb.is_decryptable(key):
-            print(f'FAIL: invalid key for folder [{db_name}]')
+            self.cns.print(f'[red]Invalid key for folder [cyan]{db_name}')
             thisdb.log(f'decrypting unsuccessfull')
             return
 
         thisdb.decrypt(key)
-        print(f'Folder [{db_name}] decrypted successfully')
+        self.cns.print(f'[green]Folder [cyan]{db_name}[/] decrypted successfully')
         
     def save(self) -> None:
         if not self.databases:
-            print('Empty list of folders')
+            self.cns.print('[red]Empty list of folders')
             return
         with open(self.DBFILE, 'wb') as f:
             pickle.dump(self.databases, f)
-        print('Saved all folders')
+        self.cns.print('[green]Saved all folders')
 
     def close(self) -> None:
         self.running = False
-        print('Closed successfully')
+        self.cns.print('[green]Closed successfully')
     
     def execute(self, cmd: str) -> None:
         match cmd.split():
@@ -223,7 +226,11 @@ class App:
                         print(msg)
                     print()
             case ['list']:
-                self.display()
+                if self.databases:
+                    for db in self.databases.values():
+                        self.cns.print(db.to_rich())
+                else:
+                    self.cns.print('[red]Empty list of folders')
             case ['lock' | 'l', key]:
                 for foldername in self.databases:
                     self.encrypt_db(foldername, key)
