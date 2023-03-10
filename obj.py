@@ -136,19 +136,19 @@ class App:
         self.cns = Console()
 
         if self.app_files:
-            cols = ['ID', 'STORAGE']
+            cols = ['[blue]ID', '[magenta]STORAGE']
             rows = []
             for i, af in enumerate(self.app_files):
                 rows.append([str(i), af[2:]])
             self.cns.print(ru.get_rich_table(cols, rows, 'Existing Storages'))
-            ind = int(ru.input(self.cns, prompt_text='Choose one by [blue]ID[/] or type "-1" to create a new storage: '))
+            ind = int(ru.input(self.cns, prompt_text='Choose a [magenta]storage[/] by [blue]ID[/] or type "-1" to create a new storage: '))
             if ind != -1:
                 self.DBFILE = self.app_files[ind][2:]
                 with open(self.DBFILE, 'rb') as f:
                     try:
                         self.databases: dict[str, Folder] = pickle.load(f)
                     except Exception as e:
-                        self.cns.print(f'Error occured when reading the storage file: [red]{e}[/]')
+                        self.cns.print(f'[red]Error occured when reading the storage file: [red]{e}[/]')
                         self.close()
                     else:
                         self.cns.print(ru.get_rich_panel(f'STORAGE [magenta]{self.DBFILE[:-5]}'))

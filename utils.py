@@ -1,6 +1,5 @@
 from string import ascii_letters
 from random import choices
-from enum import Enum
 import hashlib
 
 
