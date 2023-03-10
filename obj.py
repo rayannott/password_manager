@@ -6,7 +6,7 @@ from datetime import datetime
 from rich.console import Console
 
 from crypt_tools import VigenereKeySplitCifer
-from utils import generate_password, Message, MessagesList, MsgType, hashf, SYM_forw
+from utils import generate_password, hashf, SYM_forw
 import rich_utils as ru
 
 cifer = VigenereKeySplitCifer(iterations=100)
@@ -21,16 +21,19 @@ HELP_STR = [
     'folder <folder_name> lock <key>    # encrypt a folder with a key; the folder must be unlocked',
     'folder <folder_name> unlock <key>    # decrypt a folder with a key; executes successfully only if the key is correct; the folder must be locked',
     'folder <folder_name> drop    # delete the folder; a folder must be unlocked',
-    'folder <folder_name> drop <index>   # delete the entry with a given index from the folder; the folder must be unlocked; the entries are enumerated starting at 0',
-    'folder <folder_name> export   # write all entries of a folder into a file',
+    'folder <folder_name> drop <index>    # delete the entry with a given index from the folder; the folder must be unlocked; the entries are enumerated starting at 0',
+    'folder <folder_name> export    # write all entries of a folder into a file',
     'folder <folder_name> info    # print log history of a folder; the folder must me unlocked',
     'list    # list all folders in this storage',
     'listv    # list all folders with their contents',
     'lock <key>    # try to apply lock command to all folders',
     'lock     # try to apply lock commands to all folders using the last key used with the "unlock <key>" command',
     'unlock <key>    # try to apply unlock command to all folders',
-    'gen [<length>]   # generate a password string; default length is 15',
+    'gen [<length>]    # generate a password string; default length is 15',
     'allowed     # show all allowed charachters for the entries'
+]
+HELP_LIST = [
+    el.split('    # ') for el in HELP_STR
 ]
 
 
@@ -52,6 +55,9 @@ class LogEntry:
     
     def __str__(self):
         return f'{self.date} - {self.action}'
+    
+    def to_rich(self):
+        return f'[blue]{self.date}[/]: [cyan]{self.action}[/]'
 
 
 class Folder:
@@ -67,8 +73,8 @@ class Folder:
     def log(self, action: str) -> None:
         self.log_history.append(LogEntry(action))
     
-    def display_info(self) -> MessagesList:
-        return [Message(str(log_ent)) for log_ent in self.log_history]
+    def get_info(self) -> list[str]:
+        return [log_ent.to_rich() for log_ent in self.log_history]
     
     def get_name(self) -> str:
         return self.name
@@ -97,27 +103,21 @@ class Folder:
     def is_decryptable(self, key: str) -> bool:
         return hashf(key) == self.key_hash
     
-    def add_entry(self, entry: Entry) -> MessagesList:
+    def add_entry(self, entry: Entry) -> str:
         if not self.get_unlocked():
-            return [Message('Cannot add entry to locked folder', MsgType.ERROR)]
+            return '[red]Cannot add entry to locked folder'
         self.entries.append(entry)
         self.log(f'added entry {entry.name}')
-        return [Message(f'Added entry {entry.name} to folder {self.name}')]
+        return f'[green]Added entry [white]{entry.name}[/] to folder [cyan]{self.name}'
     
-    def delete_entry(self, entry_index: int) -> MessagesList:
+    def delete_entry(self, entry_index: int) -> str:
         if 0 <= entry_index < len(self.entries):
             ent_name = self.entries[entry_index].name
             del self.entries[entry_index]
             self.log(f'deleted entry {ent_name}')
-            return [Message(f'Deleted entry {ent_name} from folder {self.name}')]
+            return f'[green]Deleted entry [white]{ent_name}[/] from folder [cyan]{self.name}'
         else:
-            return [Message(f'ERROR: invalid index: {entry_index}; must be in [0, {len(self.entries)})', MsgType.ERROR)]
-    
-    def list(self) -> MessagesList:
-        if self.entries:
-            return [Message(str(ent)) for ent in self.entries]
-        else:
-            return [Message('No entries', MsgType.ERROR)]
+            return f'[red]Invalid index: {entry_index}; must be in 0..{len(self.entries)-1}'
 
     def __str__(self) -> str:
         unlocked_indicator = 'LOCKED ' if not self.get_unlocked() else ''
@@ -161,12 +161,13 @@ class App:
         name = ru.input(self.cns, 'Input a name for a new storage: ')
         self.DBFILE = f'{name}.pass'
         if '.\\' + self.DBFILE in self.app_files:
-            self.cns.print('[red]A storage with this name already exists')
-            if not input('Are you sure that you want to rewrite it? (y/n) ') == 'y':
+            self.cns.print('[yellow]A storage with this name already exists')
+            if not ru.input(self.cns, '[yellow]Are you sure that you want to rewrite it? ([green]y[/]/[red]n[/]) ') == 'y':
                 self.close()
                 return
         self.databases = dict()
-        self.cns.print(f'Created new storage [magenta]{name}')
+        self.cns.print(f'[green]Created new storage [magenta]{name}')
+        self.cns.print(ru.get_rich_panel(f'STORAGE [magenta]{name}'))
 
     def encrypt_db(self, db_name, key) -> None:
         thisdb = self.databases[db_name]
@@ -201,6 +202,13 @@ class App:
     def close(self) -> None:
         self.running = False
         self.cns.print('[green]Closed successfully')
+
+    def display_db_as_table(self, db: Folder):
+        rich_folder_table = ru.get_rich_db_table(
+            [[ent.name, ent.login, ent.password, ent.note] for ent in db.entries], 
+            db.to_rich()
+        )
+        self.cns.print(rich_folder_table)
     
     def execute(self, cmd: str) -> None:
         match cmd.split():
@@ -212,19 +220,19 @@ class App:
                 self.save()
                 self.close()
             case ['help']:
-                for i, hlp in enumerate(HELP_STR):
-                    print(f'{i+1}. {hlp}')
-                print('Note: some commands have a short form: folder = f, lock = l, unlock = ul.')
+                help_rich_table = ru.get_rich_table(
+                    ['COMMAND PATTERN', 'DESCRIPTION'],
+                    HELP_LIST,
+                    ''
+                )
+                self.cns.print(help_rich_table)
+                self.cns.print('[yellow]Note[/]: some commands have a short form: folder = f, lock = l, unlock = ul.')
             case ['listv']:
                 if not self.databases:
-                    print('Empty list of folders')
+                    self.cns.print('[red]Empty list of folders')
                     return
-                print()
                 for db_name, db in self.databases.items():
-                    print('\t', db, ':', sep='')
-                    for msg in db.list():
-                        print(msg)
-                    print()
+                    self.display_db_as_table(db)
             case ['list']:
                 if self.databases:
                     for db in self.databases.values():
@@ -236,11 +244,11 @@ class App:
                     self.encrypt_db(foldername, key)
             case ['lock' | 'l']:
                 if self.default_key is None:
-                    print('"unlock <key>" command was not used')
+                    self.cns.print('[red]"unlock <key>" command was not used')
                     return
                 for foldername in self.databases:
                     self.encrypt_db(foldername, self.default_key)
-                print('Locked everything with the key used in the last "unlock <key>"')
+                self.cns.print('[green]Locked everything with the key used in the last "unlock <key>"')
             case ['unlock' | 'ul', key]:
                 for foldername in self.databases:
                     self.decrypt_db(foldername, key)
@@ -250,32 +258,30 @@ class App:
                     match rest:
                         case ['add' | '+', *entry_data]:
                             if len(entry_data) >= 3:
-                                for msg in self.databases[db_name].add_entry(Entry(*entry_data[:3], ' '.join(entry_data[3:]))):
-                                    print(msg)
+                                feedback = self.databases[db_name].add_entry(Entry(*entry_data[:3], ' '.join(entry_data[3:])))
+                                self.cns.print(feedback)
                             else:
-                                print('Not enough arguments for an entry')
+                                self.cns.print('[red]Not enough arguments for an entry')
                         case ['list' | 'l']:
-                            print('\t', self.databases[db_name], ':', sep='')
-                            for msg in self.databases[db_name].list():
-                                print(msg)
+                            self.display_db_as_table(self.databases[db_name])
                         case ['drop']:
                             if self.databases[db_name].get_unlocked():
-                                if input('Are you sure (y/n)? ') == 'y':
+                                if ru.input(self.cns, '[yellow]Are you sure ([green]y[/]/[red]n[/])? ') == 'y':
                                     del self.databases[db_name]
-                                    print(f'Deleted folder [{db_name}]')
+                                    self.cns.print(f'[green]Deleted folder [cyan]{db_name}')
                             else:
-                                print('Cannot delete a locked folder')
+                                self.cns.print('[red]Cannot delete a locked folder')
                         case ['drop', entry_index]:
                             try:
                                 entry_index_int = int(entry_index)
                             except ValueError:
-                                print(f'ERROR: {entry_index} is not an integer')
+                                self.cns.print(f'[red]{entry_index} is not an integer')
                                 return
                             if self.databases[db_name].get_unlocked():
-                                for msg in self.databases[db_name].delete_entry(entry_index_int):
-                                    print(msg)
+                                feedback = self.databases[db_name].delete_entry(entry_index_int)
+                                self.cns.print(feedback)
                             else:
-                                print('Cannot delete an entry from a locked folder')
+                                self.cns.print('[red]Cannot delete an entry from a locked folder')
                         case ['lock' | 'l' | '<<', pin]:
                             self.encrypt_db(db_name, pin)
                         case ['unlock' | 'ul' | '>>', pin]:
@@ -286,30 +292,29 @@ class App:
                                 for ent in self.databases[db_name].entries:
                                     print(ent, file=fexport)
                         case ['info']:
-                            # print('key hash:', self.databases[db_name].key_hash)
                             if self.databases[db_name].get_unlocked():
-                                for msg in self.databases[db_name].display_info():
-                                    print(msg)
+                                for msg in self.databases[db_name].get_info():
+                                    self.cns.print(msg)
                             else:
-                                print('Cannot display info about a locked folder')
+                                self.cns.print('[red]Cannot display info about a locked folder')
                         case _:
-                            print('Folder already exists')
+                            self.cns.print('[red]Folder already exists')
                 else:
                     if len(rest):
-                        print('No such folder')
+                        self.cns.print('[red]No such folder')
                         return
                     self.databases[db_name] = Folder(db_name)
-                    print('Created new folder')
+                    self.cns.print('[green]Created new folder')
             case ['gen']:
-                print('Generated password:', generate_password(15))
+                self.cns.print(f'Generated password: {generate_password(15)}')
             case ['gen', pass_len]:
                 try:
                     pass_len_int = int(pass_len)
                 except:
-                    print(f'{pass_len} is not a number')
+                    self.cns.print(f'[red]{pass_len} is not a number')
                 else:
                     if pass_len_int <= 0:
-                        print('Password length must be positive')
+                        self.cns.print('[red]Password length must be positive')
                         return
                     if pass_len_int <= 4:
                         additional_str = ' (a very short one)'
@@ -318,13 +323,13 @@ class App:
                     else:
                         additional_str = ' (a huge one)'
 
-                    print('Generated password:', generate_password(pass_len_int), additional_str)
+                    self.cns.print(f'Generated password: {generate_password(pass_len_int)}[blue]{additional_str}')
             case ['allowed']:
                 print(''.join(SYM_forw))
             case _:
-                print('Unknown command. Try <help>')
+                self.cns.print('[red]Unknown command. Try <help>')
 
     def run(self) -> None:
         while self.running:
-            cmd = input('>>> ')
+            cmd = ru.input(self.cns, '>>> ')
             self.execute(cmd)
