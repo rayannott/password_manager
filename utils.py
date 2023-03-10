@@ -16,23 +16,6 @@ SYM_forw: list[str] = ['o', 'D', '+', '0', 'w', 's', '1', '8', '@', 'H', 't',
 SYM_backw = {ch: i for i, ch in enumerate(SYM_forw)}
 
 
-class MsgType(Enum):
-    ERROR = 'error'
-    MSG = 'message'
-
-
-class Message:
-    def __init__(self, message: str, type: MsgType = MsgType.MSG) -> None:
-        self.message = message
-        self.type = type
-    
-    def __str__(self) -> str:
-        return ('' if self.type == MsgType.MSG else 'ERROR: ') + self.message
-    
-
-MessagesList = list[Message]
-
-
 def string_repeater(s: str):
     while True:
         for ch in s:

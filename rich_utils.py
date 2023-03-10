@@ -10,7 +10,7 @@ def get_rich_db_table(rows: list[list[str]], title: str) -> Table:
     table = Table(title=title, show_lines=True)
 
     table.add_column("Name", justify="right", style="cyan", no_wrap=True)
-    table.add_column("Login", justify="right", style="magenta")
+    table.add_column("Login", justify="right", style="green")
     table.add_column("Password", justify="right", style="green")
     table.add_column("Notes", justify="left", style="blue")
 
