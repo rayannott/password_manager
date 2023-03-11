@@ -125,7 +125,7 @@ class Folder:
     
     def to_rich(self) -> str:
         unlocked_indicator = '[yellow]LOCKED[/]' if not self.get_unlocked() else '[green]OPEN[/]'
-        return f'{unlocked_indicator} folder [cyan]{self.name}[/] with {len(self.entries)} entries'
+        return f'{unlocked_indicator} folder [cyan]{self.name}[/] with {len(self.entries)} entr{"y" if len(self.entries) == 1 else "ies"}'
 
 
 class App:
@@ -134,7 +134,9 @@ class App:
         self.app_files = glob.glob('./*.pass')
         self.default_key = None
         self.cns = Console()
-
+        
+        self.cns.print('[magenta underline]CL Password Manager[/] [green]v0.4[/] (from [cyan]10.03.23[/])')
+        print()
         if self.app_files:
             cols = ['[blue]ID', '[magenta]STORAGE']
             rows = []
