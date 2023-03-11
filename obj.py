@@ -213,6 +213,8 @@ class App:
         self.cns.print(rich_folder_table)
     
     def execute(self, cmd: str) -> None:
+        if not cmd:
+            return
         match cmd.split():
             case ['save']:
                 self.save()
