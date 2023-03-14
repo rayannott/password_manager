@@ -35,3 +35,9 @@ def generate_password(length):
 
 def hashf(s: str):
     return hashlib.sha256(s.encode()).hexdigest()
+
+def check_reliable(key: str) -> int:
+    # checks if the key is a reliable password and returns an integer score from [0, 10]
+    if len(key) < 8:
+        return 0
+    # TODO
