@@ -1,16 +1,7 @@
 from utils import *
 
 
-
 class VigenereCipher:
-    def _forw(self, ind: int):
-        return SYM_forw[ind]
-    
-    def _backw(self, ch: str):
-        if ch not in SYM_backw:
-            raise KeyError(f'Character {ch} is unknown')
-        return SYM_backw[ch]
-
     def encrypt(self, s, key):
         pr = string_repeater(key)
         res = ''
@@ -24,7 +15,16 @@ class VigenereCipher:
         for ch in s:
             res += self._forw((self._backw(ch) - self._backw(next(pr))) % len(SYM_forw))
         return res
+    
+    @staticmethod
+    def _forw(ind: int):
+        return SYM_forw[ind]
 
+    @staticmethod
+    def _backw(ch: str):
+        if ch not in SYM_backw:
+            raise KeyError(f'Character {ch} is unknown')
+        return SYM_backw[ch]
 
 
 class VigenereIterShiftCifer:
