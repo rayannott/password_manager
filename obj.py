@@ -6,7 +6,7 @@ from datetime import datetime
 from rich.console import Console
 
 from crypt_tools import VigenereKeySplitCifer
-from utils import generate_password, hashf, SYM_forw
+import utils
 import rich_utils as ru
 
 cifer = VigenereKeySplitCifer(iterations=100)
@@ -83,7 +83,7 @@ class Folder:
         return self.unlocked
 
     def encrypt(self, key) -> None:
-        self.key_hash = hashf(key)
+        self.key_hash = utils.hashf(key)
         self.unlocked = False
         for e in self.entries:
             e.password = cifer.encrypt(e.password, key)
@@ -101,7 +101,7 @@ class Folder:
         self.log('decrypted')
     
     def is_decryptable(self, key: str) -> bool:
-        return hashf(key) == self.key_hash
+        return utils.hashf(key) == self.key_hash
     
     def add_entry(self, entry: Entry) -> str:
         if not self.get_unlocked():
@@ -310,7 +310,7 @@ class App:
                     self.databases[db_name] = Folder(db_name)
                     self.cns.print('[green]Created new folder')
             case ['gen']:
-                self.cns.print(f'Generated password: {generate_password(15)}')
+                self.cns.print(f'Generated password: {utils.generate_password(15)}')
             case ['gen', pass_len]:
                 try:
                     pass_len_int = int(pass_len)
@@ -327,9 +327,12 @@ class App:
                     else:
                         additional_str = ' (a huge one)'
 
-                    self.cns.print(f'Generated password: {generate_password(pass_len_int)}[blue]{additional_str}')
+                    self.cns.print(f'Generated password: {utils.generate_password(pass_len_int)}[blue]{additional_str}')
             case ['allowed']:
-                print(''.join(SYM_forw))
+                print(''.join(utils.SYM_forw))
+            case ['check', key]:
+                self.cns.print(f'[white]This will check if the key [magenta]{key}[/] is reliable or not')
+                # TODO
             case _:
                 self.cns.print('[red]Unknown command. Try <help>')
 
