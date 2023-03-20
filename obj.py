@@ -146,18 +146,21 @@ class App:
             ind = int(ru.input(self.cns, prompt_text='Choose a [magenta]storage[/] by [blue]ID[/] or type "-1" to create a new storage: '))
             if ind != -1:
                 self.DBFILE = self.app_files[ind][2:]
-                with open(self.DBFILE, 'rb') as f:
-                    try:
-                        self.databases: dict[str, Folder] = pickle.load(f)
-                    except Exception as e:
-                        self.cns.print(f'[red]Error occured when reading the storage file: [red]{e}[/]')
-                        self.close()
-                    else:
-                        self.cns.print(ru.get_rich_panel(f'STORAGE [magenta]{self.DBFILE[:-5]}'))
+                self.loading_existing_storage(self.DBFILE)
             else:
                 self.creating_new_storage()
         else:
             self.creating_new_storage()
+
+    def loading_existing_storage(self, storage_name: str):
+        with open(storage_name, 'rb') as f:
+            try:
+                self.databases: dict[str, Folder] = pickle.load(f)
+            except Exception as e:
+                self.cns.print(f'[red]Error occured when reading the storage file: [red]{e}[/]')
+                self.close()
+            else:
+                self.cns.print(ru.get_rich_panel(f'STORAGE [magenta]{storage_name[:-5]}'))
     
     def creating_new_storage(self) -> None:
         name = ru.input(self.cns, 'Input a name for a new storage: ')
