@@ -334,8 +334,12 @@ class App:
             case ['allowed']:
                 print(''.join(utils.SYM_forw))
             case ['check', key]:
-                self.cns.print(f'[white]This will check if the key [magenta]{key}[/] is reliable or not')
-                # TODO
+                try:
+                    get_reliability_score = utils.check_reliable(key)
+                except KeyError as e:
+                    self.cns.print(f'[red]{e}')
+                    return
+                self.cns.print(f'[white]The key [magenta]{key}[/] is {get_reliability_score:.0%} reliable')
             case _:
                 self.cns.print('[red]Unknown command. Try <help>')
 
