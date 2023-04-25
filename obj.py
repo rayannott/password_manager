@@ -242,8 +242,8 @@ class App:
                     self.display_db_as_table(db)
             case ['list']:
                 if self.databases:
-                    for db in self.databases.values():
-                        self.cns.print(db.to_rich())
+                    table = ru.get_rich_dbs_short_table(self.databases.values())
+                    self.cns.print(table)
                 else:
                     self.cns.print('[red]Empty list of folders')
             case ['lock' | 'l', key]:

@@ -19,6 +19,20 @@ def get_rich_db_table(rows: list[list[str]], title: str) -> Table:
     
     return table
 
+def get_rich_dbs_short_table(databases) -> Table:
+    table = Table(title='Folders', show_lines=True)
+    table.add_column(' ')
+    table.add_column('Folder name')
+    table.add_column('# of entries')
+
+    for db in databases:
+        table.add_row(
+            '[yellow]LOCKED[/]' if not db.get_unlocked() else '[green]OPEN[/]',
+            f'[cyan]{db.name}[/]',
+            f'{len(db.entries)}'
+        )
+    return table
+
 def get_rich_table(cols: list[str], rows: list[list[str]], title):
     table = Table(title=title)
     for col in cols:
