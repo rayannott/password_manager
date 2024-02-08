@@ -1,6 +1,7 @@
 venv/
-pyinstall.py
-__pycache__
+__pycache__/
 build/
 dist/
 other/
+.vscode/
+pyinstall.py
