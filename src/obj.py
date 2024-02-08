@@ -5,9 +5,9 @@ from datetime import datetime
 
 from rich.console import Console
 
-from crypt_tools import VigenereKeySplitCifer
-import utils
-import rich_utils as ru
+from src.crypt_tools import VigenereKeySplitCifer
+from src.utils import generate_password, hashf, check_reliable, SYM_forw
+import src.rich_utils as ru
 
 cifer = VigenereKeySplitCifer(iterations=100)
 
@@ -83,7 +83,7 @@ class Folder:
         return self.unlocked
 
     def encrypt(self, key) -> None:
-        self.key_hash = utils.hashf(key)
+        self.key_hash = hashf(key) # type: ignore
         self.unlocked = False
         for e in self.entries:
             e.password = cifer.encrypt(e.password, key)
@@ -101,7 +101,7 @@ class Folder:
         self.log('decrypted')
     
     def is_decryptable(self, key: str) -> bool:
-        return utils.hashf(key) == self.key_hash
+        return hashf(key) == self.key_hash
     
     def add_entry(self, entry: Entry) -> str:
         if not self.get_unlocked():
@@ -218,7 +218,7 @@ class App:
     def execute(self, cmd: str) -> None:
         if not cmd:
             return
-        match cmd.split():
+        match cmd.split(): # TODO: make this better
             case ['save']:
                 self.save()
             case ['close']:
@@ -265,7 +265,7 @@ class App:
                     match rest:
                         case ['add' | '+', *entry_data]:
                             if len(entry_data) >= 3:
-                                feedback = self.databases[db_name].add_entry(Entry(*entry_data[:3], ' '.join(entry_data[3:])))
+                                feedback = self.databases[db_name].add_entry(Entry(*entry_data[:3], ' '.join(entry_data[3:]))) # type: ignore
                                 self.cns.print(feedback)
                             else:
                                 self.cns.print('[red]Not enough arguments for an entry')
@@ -313,7 +313,7 @@ class App:
                     self.databases[db_name] = Folder(db_name)
                     self.cns.print('[green]Created new folder')
             case ['gen']:
-                self.cns.print(f'Generated password: {utils.generate_password(15)}')
+                self.cns.print(f'Generated password: {generate_password(15)}')
             case ['gen', pass_len]:
                 try:
                     pass_len_int = int(pass_len)
@@ -330,12 +330,12 @@ class App:
                     else:
                         additional_str = ' (a huge one)'
 
-                    self.cns.print(f'Generated password: {utils.generate_password(pass_len_int)}[blue]{additional_str}')
+                    self.cns.print(f'Generated password: {generate_password(pass_len_int)}[blue]{additional_str}')
             case ['allowed']:
-                print(''.join(utils.SYM_forw))
+                print(''.join(SYM_forw))
             case ['check', key]:
                 try:
-                    get_reliability_score = utils.check_reliable(key)
+                    get_reliability_score = check_reliable(key)
                 except KeyError as e:
                     self.cns.print(f'[red]{e}')
                     return

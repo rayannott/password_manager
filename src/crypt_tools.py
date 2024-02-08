@@ -1,4 +1,4 @@
-from utils import *
+from src.utils import string_repeater, shift_str, SYM_forw, SYM_backw
 
 
 class VigenereCipher:

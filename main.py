@@ -1,4 +1,4 @@
-from obj import *
+from src.obj import App
 
 def main() -> None:
     app = App()
