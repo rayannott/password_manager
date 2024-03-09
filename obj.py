@@ -137,18 +137,27 @@ class App:
         
         self.cns.print('[magenta underline]CL Password Manager[/] [green]v0.4[/] (from [cyan]10.03.23[/])')
         print()
-        if self.app_files:
-            cols = ['[blue]ID', '[magenta]STORAGE']
-            rows = []
-            for i, af in enumerate(self.app_files):
-                rows.append([str(i), af[2:]])
-            self.cns.print(ru.get_rich_table(cols, rows, 'Existing Storages'))
+        if not self.app_files:
+            self.creating_new_storage()
+            return
+        cols = ['[blue]ID', '[magenta]STORAGE']
+        rows = []
+        for i, af in enumerate(self.app_files):
+            rows.append([str(i), af[2:]])
+        self.cns.print(ru.get_rich_table(cols, rows, 'Existing Storages'))
+        try:
             ind = int(ru.input(self.cns, prompt_text='Choose a [magenta]storage[/] by [blue]ID[/] or type "-1" to create a new storage: '))
-            if ind != -1:
-                self.DBFILE = self.app_files[ind][2:]
-                self.loading_existing_storage(self.DBFILE)
-            else:
-                self.creating_new_storage()
+        except ValueError:
+            self.cns.print('[red]Invalid input; need a number')
+            self.close()
+            return
+        if ind > len(self.app_files) - 1:
+            self.cns.print('[red]Invalid ID')
+            self.close()
+            return
+        if ind != -1:
+            self.DBFILE = self.app_files[ind][2:]
+            self.loading_existing_storage(self.DBFILE)
         else:
             self.creating_new_storage()
 
@@ -306,12 +315,6 @@ class App:
                                 self.cns.print('[red]Cannot display info about a locked folder')
                         case _:
                             self.cns.print('[red]Folder already exists')
-                else:
-                    if len(rest):
-                        self.cns.print('[red]No such folder')
-                        return
-                    self.databases[db_name] = Folder(db_name)
-                    self.cns.print('[green]Created new folder')
             case ['gen']:
                 self.cns.print(f'Generated password: {utils.generate_password(15)}')
             case ['gen', pass_len]:
