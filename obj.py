@@ -65,7 +65,7 @@ class Folder:
     def __init__(self, name) -> None:
         self.name = name
         self.entries: list[Entry] = []
-        self.key_hash: int | None = None # storing hash of a key
+        self.key_hash: str | None = None # storing hash of a key
         self.unlocked = True
         self.log_history: list[LogEntry] = []
         self.log('created')
